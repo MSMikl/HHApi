@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import requests
@@ -114,10 +115,12 @@ def superjob_vacancies(languages):
 
 def tableprint(vacancies, header=''):
     tabledata = [
+            [
         'Язык программирования',
         'Вакансий найдено',
         'Вакансий обработано',
         'Средняя зарплата'
+        ]
     ]
     for lang in vacancies:
         tabledata.append(
@@ -133,12 +136,14 @@ def tableprint(vacancies, header=''):
 
 
 if __name__ == '__main__':
-    languages = [
-        'Python',
-        'Java',
-        'Javascript',
-        'C++',
-        'Pascal'
-    ]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', action='store_true')
+    parser.add_argument('-H', action='store_true')
+    parser.add_argument('langs', nargs='*')
+    args = parser.parse_args()
+    superjob, headhunter, languages = args.s, args.H, args.langs
 
-    tableprint(superjob_vacancies(languages), 'SuperJobMoscow')
+    if superjob:
+        tableprint(superjob_vacancies(languages), 'SuperJobMoscow')
+    if headhunter:
+        tableprint(head_hunter_vacancies(languages), 'HeadHunterMoscow')
