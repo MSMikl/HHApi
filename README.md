@@ -8,6 +8,10 @@ Python3 должен быть уже установлен. Затем испол
 
 `pip install -r requirements.txt`
 
+Для использования сервиса SuperJob необходимо получить [здесь](https://api.superjob.ru/register/) авторизационный ключ. Его следует записать в файл `.env` в папке со скриптом в следующем формате
+
+`SUPER_JOB_KEY = v3.r.134536ytfdgh183014cdf15359789gfhdc5c56e0038109c17f0try34f3331`
+
 ## Запуск
 
 Выполнить `main.py [-h] [-s] [-H] [langs ...]`
