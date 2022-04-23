@@ -26,7 +26,7 @@ def predict_rub_salary(
 
 def head_hunter_vacancies(language):
     vacancies = {}
-    payload = {
+    params = {
         'text': language,
         'area': '1',
         'period': '30',
@@ -36,21 +36,21 @@ def head_hunter_vacancies(language):
     try:
         response = requests.get(
             'https://api.hh.ru/vacancies',
-            params=payload
+            params=params
         )
         response.raise_for_status()
     except:
         raise
     page1 = response.json()
     vacancies['vacancies_found'] = page1['found']
-    non_zero_count = 0
+    non_zero_count = 0.0001
     total_salary = 0
     for page in range(0, min(page1['pages'], 40)):
-        payload.update(page=page)
+        params['page'] = page
         try:
             page_response = requests.get(
                 'https://api.hh.ru/vacancies',
-                params=payload
+                params=params
             )
             page_response.raise_for_status()
         except requests.exceptions.ConnectionError:
@@ -69,7 +69,7 @@ def head_hunter_vacancies(language):
                 continue
             total_salary += salary
             non_zero_count += 1
-        vacancies['vacancies_processed'] = non_zero_count
+        vacancies['vacancies_processed'] = int(non_zero_count)
         vacancies['average_salary'] = int(total_salary/non_zero_count)
     return vacancies
 
@@ -99,7 +99,7 @@ def superjob_vacancies(language, api_key):
     non_zero_count = 0.0001
     total_salary = 0
     for page in range(0, vacancies['vacancies_found']//50 + 1):
-        params.update(page=page)
+        params['page'] = page
         try:
             page_response = requests.get(
                 'https://api.superjob.ru/2.0/vacancies/',
@@ -129,11 +129,11 @@ def superjob_vacancies(language, api_key):
 
 def tableprint(tabledata, header=''):
     tabledata = [
-            [
-        'Язык программирования',
-        'Вакансий найдено',
-        'Вакансий обработано',
-        'Средняя зарплата'
+        [
+            'Язык программирования',
+            'Вакансий найдено',
+            'Вакансий обработано',
+            'Средняя зарплата'
         ]
     ] + tabledata
     table = AsciiTable(tabledata)
@@ -172,11 +172,11 @@ if __name__ == '__main__':
                 traceback.print_exc()
                 continue
             tabledata.append(
-                    [
-                lang,
-                vacancies['vacancies_found'],
-                vacancies['vacancies_processed'],
-                vacancies['average_salary']
+                [
+                    lang,
+                    vacancies['vacancies_found'],
+                    vacancies['vacancies_processed'],
+                    vacancies['average_salary']
                 ]
             )
         tableprint(tabledata, 'SuperJobMoscow')
@@ -190,11 +190,11 @@ if __name__ == '__main__':
                 traceback.print_exc()
                 continue
             tabledata.append(
-                    [
-                lang,
-                vacancies['vacancies_found'],
-                vacancies['vacancies_processed'],
-                vacancies['average_salary']
+                [
+                    lang,
+                    vacancies['vacancies_found'],
+                    vacancies['vacancies_processed'],
+                    vacancies['average_salary']
                 ]
             )
         tableprint(tabledata, 'HeadHunterMoscow')
