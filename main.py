@@ -1,5 +1,6 @@
 import argparse
 import os
+import traceback
 
 import requests
 
@@ -32,23 +33,33 @@ def head_hunter_vacancies(language):
         'only_with_salary': 'true',
         'per_page': '50'
     }
-    response = requests.get(
-        'https://api.hh.ru/vacancies',
-        params=payload
-    ).json()
-    vacancies['vacancies_found'] = response['found']
+    try:
+        response = requests.get(
+            'https://api.hh.ru/vacancies',
+            params=payload
+        )
+        response.raise_for_status()
+    except:
+        raise
+    page1 = response.json()
+    vacancies['vacancies_found'] = page1['found']
     non_zero_count = 0
     total_salary = 0
-    for page in range(0, min(response['pages'], 40)):
+    for page in range(0, min(page1['pages'], 40)):
         payload.update(page=page)
         try:
             page_response = requests.get(
                 'https://api.hh.ru/vacancies',
                 params=payload
-            ).json()
+            )
+            page_response.raise_for_status()
         except requests.exceptions.ConnectionError:
             continue
-        for vacancy in page_response['items']:
+        except requests.exceptions.HTTPError:
+            raise
+        except:
+            raise
+        for vacancy in page_response.json()['items']:
             salary = predict_rub_salary(
                 salary_from=vacancy['salary']['from'],
                 salary_to=vacancy['salary']['to'],
@@ -75,12 +86,16 @@ def superjob_vacancies(language, api_key):
         'no_agreement': 1,
         'count': 50
     }
-    response = requests.get(
-        'https://api.superjob.ru/2.0/vacancies/',
-        headers=headers,
-        params=params
-    ).json()
-    vacancies['vacancies_found'] = response['total']
+    try:
+        response = requests.get(
+            'https://api.superjob.ru/2.0/vacancies/',
+            headers=headers,
+            params=params
+        )
+        response.raise_for_status()
+    except:
+        raise
+    vacancies['vacancies_found'] = response.json()['total']
     non_zero_count = 0.0001
     total_salary = 0
     for page in range(0, vacancies['vacancies_found']//50 + 1):
@@ -90,10 +105,15 @@ def superjob_vacancies(language, api_key):
                 'https://api.superjob.ru/2.0/vacancies/',
                 headers=headers,
                 params=params
-            ).json()
+            )
+            page_response.raise_for_status()
         except requests.exceptions.ConnectionError:
             continue
-        for vacancy in page_response['objects']:
+        except requests.exceptions.HTTPError:
+            raise
+        except:
+            raise
+        for vacancy in page_response.json()['objects']:
             salary = predict_rub_salary(
                 salary_from=vacancy['payment_from'],
                 salary_to=vacancy['payment_to']
@@ -123,9 +143,21 @@ def tableprint(tabledata, header=''):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', action='store_true', help='Get vacancies from SuberJob')
-    parser.add_argument('-H', action='store_true', help='Get vacancies from HeadHunter')
-    parser.add_argument('langs', nargs='*', help='Enter keywords for search')
+    parser.add_argument(
+        '-s',
+        action='store_true',
+        help='Get vacancies from SuberJob'
+    )
+    parser.add_argument(
+        '-H',
+        action='store_true',
+        help='Get vacancies from HeadHunter'
+    )
+    parser.add_argument(
+        'langs',
+        nargs='*',
+        help='Enter keywords for search'
+    )
     args = parser.parse_args()
     superjob, headhunter, languages = args.s, args.H, args.langs
 
@@ -134,7 +166,11 @@ if __name__ == '__main__':
         api_key = os.getenv('SUPER_JOB_KEY')
         tabledata = []
         for lang in languages:
-            vacancies = superjob_vacancies(lang, api_key)
+            try:
+                vacancies = superjob_vacancies(lang, api_key)
+            except:
+                traceback.print_exc()
+                continue
             tabledata.append(
                     [
                 lang,
@@ -144,10 +180,15 @@ if __name__ == '__main__':
                 ]
             )
         tableprint(tabledata, 'SuperJobMoscow')
+
     if headhunter:
         tabledata = []
         for lang in languages:
-            vacancies = head_hunter_vacancies(lang)
+            try:
+                vacancies = head_hunter_vacancies(lang)
+            except:
+                traceback.print_exc()
+                continue
             tabledata.append(
                     [
                 lang,
