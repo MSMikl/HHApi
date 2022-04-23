@@ -7,17 +7,20 @@ from dotenv import load_dotenv
 from terminaltables import AsciiTable
 
 
-def predict_rub_salary(vacancy):
-    salary = vacancy['salary']
-    if salary['currency'] != 'RUR':
+def predict_rub_salary(
+    salary_from=None,
+    salary_to=None,
+    salary_currency='RUR'
+):
+    if salary_currency != 'RUR':
         return None
-    if not salary['from'] and not salary['to']:
+    if not salary_from and not salary_to:
         return None
-    if not salary['from']:
-        return salary['to']*0.8
-    if not salary['to']:
-        return salary['from']*1.2
-    return (salary['from'] + salary['to'])/2
+    if not salary_from:
+        return salary_to*0.8
+    if not salary_to:
+        return salary_from*1.2
+    return (salary_from + salary_to)/2
 
 
 def head_hunter_vacancies(languages):
@@ -48,7 +51,11 @@ def head_hunter_vacancies(languages):
             except requests.exceptions.ConnectionError:
                 continue
             for vacancy in page_response['items']:
-                salary = predict_rub_salary(vacancy)
+                salary = predict_rub_salary(
+                    salary_from=vacancy['salary']['from'],
+                    salary_to=vacancy['salary']['to'],
+                    salary_currency=vacancy['salary']['currency']
+                )
                 if not salary:
                     continue
                 total_salary += salary
@@ -56,16 +63,6 @@ def head_hunter_vacancies(languages):
         vacancies[lang]['vacancies_processed'] = non_zero_count
         vacancies[lang]['average_salary'] = int(total_salary/non_zero_count)
     return vacancies
-
-
-def predict_rub_salary_for_superJob(vacancy):
-    if not vacancy['payment_from'] and not vacancy['payment_to']:
-        return None
-    if not vacancy['payment_from']:
-        return vacancy['payment_to']*0.8
-    if not vacancy['payment_to']:
-        return vacancy['payment_from']*1.2
-    return (vacancy['payment_from'] + vacancy['payment_to'])/2
 
 
 def superjob_vacancies(languages):
@@ -103,7 +100,10 @@ def superjob_vacancies(languages):
             except requests.exceptions.ConnectionError:
                 continue
             for vacancy in page_response['objects']:
-                salary = predict_rub_salary_for_superJob(vacancy)
+                salary = predict_rub_salary(
+                    salary_from=vacancy['payment_from'],
+                    salary_to=vacancy['payment_to']
+                )
                 if not salary:
                     continue
                 total_salary += salary
