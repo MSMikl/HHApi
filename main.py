@@ -137,9 +137,9 @@ def tableprint(vacancies, header=''):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', action='store_true')
-    parser.add_argument('-H', action='store_true')
-    parser.add_argument('langs', nargs='*')
+    parser.add_argument('-s', action='store_true', help='Get vacancies from SuberJob')
+    parser.add_argument('-H', action='store_true', help='Get vacancies from HeadHunter')
+    parser.add_argument('langs', nargs='*', help='Enter keywords for search')
     args = parser.parse_args()
     superjob, headhunter, languages = args.s, args.H, args.langs
 
