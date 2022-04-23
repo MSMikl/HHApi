@@ -23,97 +23,91 @@ def predict_rub_salary(
     return (salary_from + salary_to)/2
 
 
-def head_hunter_vacancies(languages):
+def head_hunter_vacancies(language):
     vacancies = {}
-    for lang in languages:
-        vacancies[lang] = {}
-        payload = {
-            'text': lang,
-            'area': '1',
-            'period': '30',
-            'only_with_salary': 'true',
-            'per_page': '50'
-        }
-        response = requests.get(
-            'https://api.hh.ru/vacancies',
-            params=payload
-        ).json()
-        vacancies[lang]['vacancies_found'] = response['found']
-        non_zero_count = 0
-        total_salary = 0
-        for page in range(0, min(response['pages'], 40)):
-            payload.update(page=page)
-            try:
-                page_response = requests.get(
-                    'https://api.hh.ru/vacancies',
-                    params=payload
-                ).json()
-            except requests.exceptions.ConnectionError:
+    payload = {
+        'text': language,
+        'area': '1',
+        'period': '30',
+        'only_with_salary': 'true',
+        'per_page': '50'
+    }
+    response = requests.get(
+        'https://api.hh.ru/vacancies',
+        params=payload
+    ).json()
+    vacancies['vacancies_found'] = response['found']
+    non_zero_count = 0
+    total_salary = 0
+    for page in range(0, min(response['pages'], 40)):
+        payload.update(page=page)
+        try:
+            page_response = requests.get(
+                'https://api.hh.ru/vacancies',
+                params=payload
+            ).json()
+        except requests.exceptions.ConnectionError:
+            continue
+        for vacancy in page_response['items']:
+            salary = predict_rub_salary(
+                salary_from=vacancy['salary']['from'],
+                salary_to=vacancy['salary']['to'],
+                salary_currency=vacancy['salary']['currency']
+            )
+            if not salary:
                 continue
-            for vacancy in page_response['items']:
-                salary = predict_rub_salary(
-                    salary_from=vacancy['salary']['from'],
-                    salary_to=vacancy['salary']['to'],
-                    salary_currency=vacancy['salary']['currency']
-                )
-                if not salary:
-                    continue
-                total_salary += salary
-                non_zero_count += 1
-        vacancies[lang]['vacancies_processed'] = non_zero_count
-        vacancies[lang]['average_salary'] = int(total_salary/non_zero_count)
+            total_salary += salary
+            non_zero_count += 1
+        vacancies['vacancies_processed'] = non_zero_count
+        vacancies['average_salary'] = int(total_salary/non_zero_count)
     return vacancies
 
 
-def superjob_vacancies(languages):
-    load_dotenv()
-    api_key = os.getenv('SUPER_JOB_KEY')
+def superjob_vacancies(language, api_key):
     headers = {
         'X-Api-App-Id': api_key
         }
     vacancies = {}
-    for lang in languages:
-        vacancies[lang] = {}
-        params = {
-            'keyword': lang,
-            'town': 4,
-            'catalogues': 48,
-            'no_agreement': 1,
-            'count': 50
-        }
-        response = requests.get(
-            'https://api.superjob.ru/2.0/vacancies/',
-            headers=headers,
-            params=params
-        ).json()
-        vacancies[lang]['vacancies_found'] = response['total']
-        non_zero_count = 0.0001
-        total_salary = 0
-        for page in range(0, vacancies[lang]['vacancies_found']//50 + 1):
-            params.update(page=page)
-            try:
-                page_response = requests.get(
-                    'https://api.superjob.ru/2.0/vacancies/',
-                    headers=headers,
-                    params=params
-                ).json()
-            except requests.exceptions.ConnectionError:
+    params = {
+        'keyword': language,
+        'town': 4,
+        'catalogues': 48,
+        'no_agreement': 1,
+        'count': 50
+    }
+    response = requests.get(
+        'https://api.superjob.ru/2.0/vacancies/',
+        headers=headers,
+        params=params
+    ).json()
+    vacancies['vacancies_found'] = response['total']
+    non_zero_count = 0.0001
+    total_salary = 0
+    for page in range(0, vacancies['vacancies_found']//50 + 1):
+        params.update(page=page)
+        try:
+            page_response = requests.get(
+                'https://api.superjob.ru/2.0/vacancies/',
+                headers=headers,
+                params=params
+            ).json()
+        except requests.exceptions.ConnectionError:
+            continue
+        for vacancy in page_response['objects']:
+            salary = predict_rub_salary(
+                salary_from=vacancy['payment_from'],
+                salary_to=vacancy['payment_to']
+            )
+            if not salary:
                 continue
-            for vacancy in page_response['objects']:
-                salary = predict_rub_salary(
-                    salary_from=vacancy['payment_from'],
-                    salary_to=vacancy['payment_to']
-                )
-                if not salary:
-                    continue
-                total_salary += salary
-                non_zero_count += 1
-        vacancies[lang]['vacancies_processed'] = int(non_zero_count)
-        vacancies[lang]['average_salary'] = int(total_salary/non_zero_count)
+            total_salary += salary
+            non_zero_count += 1
+        vacancies['vacancies_processed'] = int(non_zero_count)
+        vacancies['average_salary'] = int(total_salary/non_zero_count)
     return vacancies
 
 
-def tableprint(vacancies, header=''):
+def tableprint(tabledata, header=''):
     tabledata = [
             [
         'Язык программирования',
@@ -121,15 +115,7 @@ def tableprint(vacancies, header=''):
         'Вакансий обработано',
         'Средняя зарплата'
         ]
-    ]
-    for lang in vacancies:
-        tabledata.append(
-            [
-                lang, vacancies[lang]['vacancies_found'],
-                vacancies[lang]['vacancies_processed'],
-                vacancies[lang]['average_salary']
-            ]
-        )
+    ] + tabledata
     table = AsciiTable(tabledata)
     table.title = header
     print(table.table)
@@ -144,6 +130,30 @@ if __name__ == '__main__':
     superjob, headhunter, languages = args.s, args.H, args.langs
 
     if superjob:
-        tableprint(superjob_vacancies(languages), 'SuperJobMoscow')
+        load_dotenv()
+        api_key = os.getenv('SUPER_JOB_KEY')
+        tabledata = []
+        for lang in languages:
+            vacancies = superjob_vacancies(lang, api_key)
+            tabledata.append(
+                    [
+                lang,
+                vacancies['vacancies_found'],
+                vacancies['vacancies_processed'],
+                vacancies['average_salary']
+                ]
+            )
+        tableprint(tabledata, 'SuperJobMoscow')
     if headhunter:
-        tableprint(head_hunter_vacancies(languages), 'HeadHunterMoscow')
+        tabledata = []
+        for lang in languages:
+            vacancies = head_hunter_vacancies(lang)
+            tabledata.append(
+                    [
+                lang,
+                vacancies['vacancies_found'],
+                vacancies['vacancies_processed'],
+                vacancies['average_salary']
+                ]
+            )
+        tableprint(tabledata, 'HeadHunterMoscow')
