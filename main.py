@@ -2,6 +2,8 @@ import argparse
 import os
 import traceback
 
+from itertools import count
+
 import requests
 
 from dotenv import load_dotenv
@@ -33,23 +35,17 @@ def get_hh_vacancies(language):
         'only_with_salary': 'true',
         'per_page': '50'
     }
-    response = requests.get(
-        'https://api.hh.ru/vacancies',
-        params=params
-    )
-    response.raise_for_status()
-    page1 = response.json()
-    vacancies['vacancies_found'] = page1['found']
     non_zero_count = 0.0001
     total_salary = 0
-    for page in range(0, min(page1['pages'], 40)):
+    for page in count(0):
         params['page'] = page
-        page_response = requests.get(
+        response = requests.get(
             'https://api.hh.ru/vacancies',
             params=params
         )
-        page_response.raise_for_status()
-        for vacancy in page_response.json()['items']:
+        response.raise_for_status()
+        page_data = response.json()
+        for vacancy in page_data['items']:
             salary = predict_rub_salary(
                 salary_from=vacancy['salary']['from'],
                 salary_to=vacancy['salary']['to'],
@@ -59,8 +55,11 @@ def get_hh_vacancies(language):
                 continue
             total_salary += salary
             non_zero_count += 1
-        vacancies['vacancies_processed'] = int(non_zero_count)
-        vacancies['average_salary'] = int(total_salary/non_zero_count)
+        if page >= page_data['pages'] or page == 40:
+            vacancies['vacancies_found'] = page_data['found']
+            break
+    vacancies['vacancies_processed'] = int(non_zero_count)
+    vacancies['average_salary'] = int(total_salary/non_zero_count)
     return vacancies
 
 
@@ -76,24 +75,18 @@ def get_superjob_vacancies(language, api_key):
         'no_agreement': 1,
         'count': 50
     }
-    response = requests.get(
-        'https://api.superjob.ru/2.0/vacancies/',
-        headers=headers,
-        params=params
-    )
-    response.raise_for_status()
-    vacancies['vacancies_found'] = response.json()['total']
     non_zero_count = 0.0001
     total_salary = 0
-    for page in range(0, vacancies['vacancies_found']//50 + 1):
+    for page in count(0):
         params['page'] = page
-        page_response = requests.get(
+        response = requests.get(
             'https://api.superjob.ru/2.0/vacancies/',
             headers=headers,
             params=params
         )
-        page_response.raise_for_status()
-        for vacancy in page_response.json()['objects']:
+        response.raise_for_status()
+        page_data = response.json()
+        for vacancy in page_data['objects']:
             salary = predict_rub_salary(
                 salary_from=vacancy['payment_from'],
                 salary_to=vacancy['payment_to']
@@ -102,8 +95,11 @@ def get_superjob_vacancies(language, api_key):
                 continue
             total_salary += salary
             non_zero_count += 1
-        vacancies['vacancies_processed'] = int(non_zero_count)
-        vacancies['average_salary'] = int(total_salary/non_zero_count)
+        if (page + 1) * 50 >= page_data['total']:
+            vacancies['vacancies_found'] = page_data['total']
+            break
+    vacancies['vacancies_processed'] = int(non_zero_count)
+    vacancies['average_salary'] = int(total_salary/non_zero_count)
     return vacancies
 
 
@@ -148,7 +144,10 @@ if __name__ == '__main__':
         for lang in languages:
             try:
                 vacancies = get_superjob_vacancies(lang, api_key)
-            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError):
+            except (
+                requests.exceptions.HTTPError,
+                requests.exceptions.ConnectionError
+            ):
                 traceback.print_exc()
                 continue
             except:
@@ -168,7 +167,10 @@ if __name__ == '__main__':
         for lang in languages:
             try:
                 vacancies = get_hh_vacancies(lang)
-            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError):
+            except (
+                requests.exceptions.HTTPError,
+                requests.exceptions.ConnectionError
+            ):
                 traceback.print_exc()
                 continue
             except:
