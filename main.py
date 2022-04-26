@@ -15,7 +15,6 @@ def predict_rub_salary(
 ):
     if salary_currency != 'RUR':
         return None
-    print(salary_to, salary_from)
     if salary_from and salary_to:
         return (salary_from + salary_to)/2
     if salary_from:
@@ -169,9 +168,11 @@ if __name__ == '__main__':
         for lang in languages:
             try:
                 vacancies = get_superjob_vacancies(lang, api_key)
-            except:
+            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError):
                 traceback.print_exc()
                 continue
+            except:
+                raise
             tabledata.append(
                 [
                     lang,
@@ -187,9 +188,11 @@ if __name__ == '__main__':
         for lang in languages:
             try:
                 vacancies = get_hh_vacancies(lang)
-            except:
+            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError):
                 traceback.print_exc()
                 continue
+            except:
+                raise
             tabledata.append(
                 [
                     lang,
