@@ -24,7 +24,7 @@ def predict_rub_salary(
     return (salary_from + salary_to)/2
 
 
-def head_hunter_vacancies(language):
+def get_hh_vacancies(language):
     vacancies = {}
     params = {
         'text': language,
@@ -74,7 +74,7 @@ def head_hunter_vacancies(language):
     return vacancies
 
 
-def superjob_vacancies(language, api_key):
+def get_superjob_vacancies(language, api_key):
     headers = {
         'X-Api-App-Id': api_key
         }
@@ -127,7 +127,7 @@ def superjob_vacancies(language, api_key):
     return vacancies
 
 
-def tableprint(tabledata, header=''):
+def print_table(tabledata, header=''):
     tabledata = [
         [
             'Язык программирования',
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         tabledata = []
         for lang in languages:
             try:
-                vacancies = superjob_vacancies(lang, api_key)
+                vacancies = get_superjob_vacancies(lang, api_key)
             except:
                 traceback.print_exc()
                 continue
@@ -179,13 +179,13 @@ if __name__ == '__main__':
                     vacancies['average_salary']
                 ]
             )
-        tableprint(tabledata, 'SuperJobMoscow')
+        print_table(tabledata, 'SuperJobMoscow')
 
     if headhunter:
         tabledata = []
         for lang in languages:
             try:
-                vacancies = head_hunter_vacancies(lang)
+                vacancies = get_hh_vacancies(lang)
             except:
                 traceback.print_exc()
                 continue
@@ -197,4 +197,4 @@ if __name__ == '__main__':
                     vacancies['average_salary']
                 ]
             )
-        tableprint(tabledata, 'HeadHunterMoscow')
+        print_table(tabledata, 'HeadHunterMoscow')
