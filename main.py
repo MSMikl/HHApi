@@ -15,13 +15,14 @@ def predict_rub_salary(
 ):
     if salary_currency != 'RUR':
         return None
-    if not salary_from and not salary_to:
-        return None
-    if not salary_from:
-        return salary_to*0.8
-    if not salary_to:
+    print(salary_to, salary_from)
+    if salary_from and salary_to:
+        return (salary_from + salary_to)/2
+    if salary_from:
         return salary_from*1.2
-    return (salary_from + salary_to)/2
+    if salary_to:
+        return salary_to*0.8
+    return None
 
 
 def get_hh_vacancies(language):
