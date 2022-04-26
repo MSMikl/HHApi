@@ -33,32 +33,22 @@ def get_hh_vacancies(language):
         'only_with_salary': 'true',
         'per_page': '50'
     }
-    try:
-        response = requests.get(
-            'https://api.hh.ru/vacancies',
-            params=params
-        )
-        response.raise_for_status()
-    except:
-        raise
+    response = requests.get(
+        'https://api.hh.ru/vacancies',
+        params=params
+    )
+    response.raise_for_status()
     page1 = response.json()
     vacancies['vacancies_found'] = page1['found']
     non_zero_count = 0.0001
     total_salary = 0
     for page in range(0, min(page1['pages'], 40)):
         params['page'] = page
-        try:
-            page_response = requests.get(
-                'https://api.hh.ru/vacancies',
-                params=params
-            )
-            page_response.raise_for_status()
-        except requests.exceptions.ConnectionError:
-            continue
-        except requests.exceptions.HTTPError:
-            raise
-        except:
-            raise
+        page_response = requests.get(
+            'https://api.hh.ru/vacancies',
+            params=params
+        )
+        page_response.raise_for_status()
         for vacancy in page_response.json()['items']:
             salary = predict_rub_salary(
                 salary_from=vacancy['salary']['from'],
@@ -86,33 +76,23 @@ def get_superjob_vacancies(language, api_key):
         'no_agreement': 1,
         'count': 50
     }
-    try:
-        response = requests.get(
-            'https://api.superjob.ru/2.0/vacancies/',
-            headers=headers,
-            params=params
-        )
-        response.raise_for_status()
-    except:
-        raise
+    response = requests.get(
+        'https://api.superjob.ru/2.0/vacancies/',
+        headers=headers,
+        params=params
+    )
+    response.raise_for_status()
     vacancies['vacancies_found'] = response.json()['total']
     non_zero_count = 0.0001
     total_salary = 0
     for page in range(0, vacancies['vacancies_found']//50 + 1):
         params['page'] = page
-        try:
-            page_response = requests.get(
-                'https://api.superjob.ru/2.0/vacancies/',
-                headers=headers,
-                params=params
-            )
-            page_response.raise_for_status()
-        except requests.exceptions.ConnectionError:
-            continue
-        except requests.exceptions.HTTPError:
-            raise
-        except:
-            raise
+        page_response = requests.get(
+            'https://api.superjob.ru/2.0/vacancies/',
+            headers=headers,
+            params=params
+        )
+        page_response.raise_for_status()
         for vacancy in page_response.json()['objects']:
             salary = predict_rub_salary(
                 salary_from=vacancy['payment_from'],
