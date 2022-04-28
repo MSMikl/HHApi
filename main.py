@@ -11,9 +11,9 @@ from terminaltables import AsciiTable
 
 
 def predict_rub_salary(
-    salary_from=None,
-    salary_to=None,
-    salary_currency='RUR'
+    salary_from,
+    salary_to,
+    salary_currency
 ):
     if salary_currency != 'RUR':
         return None
@@ -23,7 +23,6 @@ def predict_rub_salary(
         return salary_from*1.2
     if salary_to:
         return salary_to*0.8
-    return None
 
 
 def get_hh_vacancies(language):
@@ -150,8 +149,6 @@ if __name__ == '__main__':
             ):
                 traceback.print_exc()
                 continue
-            except:
-                raise
             tabledata.append(
                 [
                     lang,
@@ -173,8 +170,6 @@ if __name__ == '__main__':
             ):
                 traceback.print_exc()
                 continue
-            except:
-                raise
             tabledata.append(
                 [
                     lang,
